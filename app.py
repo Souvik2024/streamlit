@@ -11,4 +11,3 @@ df = pd.DataFrame(
 edited_df = st.experimental_data_editor(df, num_rows="dynamic")
 
 favorite_command = edited_df.loc[edited_df["Marks"].idxmax()]["command"]
-st.markdown(f"Your favorite command is **{favorite_command}** 🎈")
