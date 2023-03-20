@@ -1,34 +1,60 @@
 import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+import pandas as pd 
+from matplotlib import pyplot as plt
+from plotly import graph_objs as go
+from sklearn.linear_model import LinearRegression
+import numpy as np 
 
-# Set page title
-st.set_page_config(page_title='Price Tracking Data Visualization and Analysis')
 
-# Load data
-data = pd.read_csv('price_data.csv')
+data = pd.read_csv("data//Salary_Data.csv")
+x = np.array(data['YearsExperience']).reshape(-1,1)
+lr = LinearRegression()
+lr.fit(x,np.array(data['Salary']))
 
-# Sidebar options
-st.sidebar.title('Options')
-selected_product = st.sidebar.selectbox('Select Product', sorted(data['product_name'].unique()))
-selected_date = st.sidebar.slider('Select Date Range', min_value=data['date'].min(), max_value=data['date'].max(), value=(data['date'].min(), data['date'].max()))
 
-# Filter data
-filtered_data = data[(data['product_name']==selected_product) & (data['date']>=selected_date[0]) & (data['date']<=selected_date[1])]
+st.title("Salary Predictor")
+st.image("data//sal.jpg",width = 800)
+nav = st.sidebar.radio("Navigation",["Home","Prediction","Contribute"])
+if nav == "Home":
+    
+    if st.checkbox("Show Table"):
+        st.table(data)
+    
+    graph = st.selectbox("What kind of Graph ? ",["Non-Interactive","Interactive"])
 
-# Show data
-st.write(f"Showing data for '{selected_product}' from {selected_date[0]} to {selected_date[1]}")
-st.write(filtered_data)
+    val = st.slider("Filter data using years",0,20)
+    data = data.loc[data["YearsExperience"]>= val]
+    if graph == "Non-Interactive":
+        plt.figure(figsize = (10,5))
+        plt.scatter(data["YearsExperience"],data["Salary"])
+        plt.ylim(0)
+        plt.xlabel("Years of Experience")
+        plt.ylabel("Salary")
+        plt.tight_layout()
+        st.pyplot()
+    if graph == "Interactive":
+        layout =go.Layout(
+            xaxis = dict(range=[0,16]),
+            yaxis = dict(range =[0,210000])
+        )
+        fig = go.Figure(data=go.Scatter(x=data["YearsExperience"], y=data["Salary"], mode='markers'),layout = layout)
+        st.plotly_chart(fig)
+    
+if nav == "Prediction":
+    st.header("Know your Salary")
+    val = st.number_input("Enter you exp",0.00,20.00,step = 0.25)
+    val = np.array(val).reshape(1,-1)
+    pred =lr.predict(val)[0]
 
-# Price distribution plot
-fig1, ax1 = plt.subplots()
-sns.histplot(data=filtered_data, x='price', kde=True, ax=ax1)
-ax1.set_title(f'Distribution of Prices for {selected_product}')
-st.pyplot(fig1)
+    if st.button("Predict"):
+        st.success(f"Your predicted salary is {round(pred)}")
 
-# Price over time plot
-fig2, ax2 = plt.subplots()
-sns.lineplot(data=filtered_data, x='date', y='price', ax=ax2)
-ax2.set_title(f'Price Trend for {selected_product}')
-st.pyplot(fig2)
+if nav == "Contribute":
+    st.header("Contribute to our dataset")
+    ex = st.number_input("Enter your Experience",0.0,20.0)
+    sal = st.number_input("Enter your Salary",0.00,1000000.00,step = 1000.0)
+    if st.button("submit"):
+        to_add = {"YearsExperience":[ex],"Salary":[sal]}
+        to_add = pd.DataFrame(to_add)
+        to_add.to_csv("data//Salary_Data.csv",mode='a',header = False,index= False)
+        st.success("Submitted")
